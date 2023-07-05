@@ -1,0 +1,56 @@
+version: '3.9'
+
+services:
+  nginx:
+    image: nginx:stable-alpine
+    container_name: ppn-nginx
+    ports:
+      - "80:80"
+    restart: always
+    volumes:
+      - ./projects:/var/www
+      - ./.docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./.docker/nginx/logs:/var/log/nginx/
+    depends_on:
+      - postgres
+      - php-fpm
+    networks:
+      - backend
+
+  postgres:
+    image: postgres:14.8-alpine3.18
+    restart: always
+    environment:
+      POSTGRES_DB: currencн_db
+      POSTGRES_USER: currencн_db
+      POSTGRES_PASSWORD: currencн_db2
+      # POSTGRES_HOST_AUTH_METHOD: trust
+    networks:
+      - backend
+    # ports:
+    #     - 54321:5432
+    volumes:
+      # - ./.docker/postgres/datadir:/var/lib/postgresql/data
+      - ./.docker/postgres/init:/docker-entrypoint-initdb.d
+      
+
+  php-fpm:
+    build:
+      context: .docker/php-fpm
+      dockerfile: Dockerfile
+    working_dir: /var/www
+    container_name: ppn-php-fpm
+    volumes:
+      - ./projects:/var/www
+    environment:
+      DB_HOST: postgres
+      UPDATE_INFO: 15
+    depends_on:
+      - postgres
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
